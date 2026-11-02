@@ -40,7 +40,7 @@ export default function Home() {
       <div className="form-card">
         <div className="card-top"><span className="small-pill">{stage==="details"?"1. Dati personali":stage==="shifts"?"2. Disponibilità":stage==="review"?"3. Riepilogo":"Iscrizione interna salvata"}</span></div>
         <h2 ref={heading} tabIndex={-1}>{stage==="details"?"I tuoi dati":stage==="shifts"?"Scegli i turni":stage==="review"?"Riepilogo":"Completa la partecipazione"}</h2>
-        <p className="card-description">{stage==="details"?"Nome, cognome e telefono sono obbligatori. L’email è facoltativa.":stage==="shifts"?"Scegli una o più ore, anche in supermercati diversi.":stage==="review"?"Controlla i dati e i turni prima di confermare.":"La disponibilità è registrata. Ti resta questo ultimo passaggio."}</p>
+        <p className="card-description">{stage==="details"?"Nome, cognome e telefono sono obbligatori. L’email è facoltativa.":stage==="shifts"?"Scegli una o più ore, anche in sedi diverse.":stage==="review"?"Controlla i dati e i turni prima di confermare.":"La disponibilità è registrata. Ti resta questo ultimo passaggio."}</p>
         {stage==="details"&&<form onSubmit={e=>{e.preventDefault();if(person.isMinor===null){setError("Indica se sei maggiorenne o minorenne.");return;}const parsed=registrationSchema.safeParse({...person,id:"00000000-0000-4000-8000-000000000000",shifts:[{store:"despar",hour:8}]});if(!parsed.success){setError(parsed.error.issues[0].message);return;}loadSlots();go("shifts");}}>
           <div className="fields">
             <label>Nome *<input name="firstName" autoComplete="given-name" required maxLength={80} placeholder="Il tuo nome" value={person.firstName} onChange={e=>setPerson({...person,firstName:e.target.value})}/></label>
@@ -53,9 +53,9 @@ export default function Home() {
           <button className="primary" type="submit">Scegli i tuoi turni <ArrowRight size={18}/></button><p className="privacy"><LockKeyhole size={13}/> I contatti servono a organizzare la tua partecipazione.</p>
         </form>}
         {stage==="shifts"&&<>
-          <div className="slot-help"><Clock3 size={16}/><span>08:00–20:00 · Turni da un’ora · Posti aggiornati automaticamente</span></div>
+          <div className="slot-help"><Clock3 size={16}/><span>Turni da un’ora · Despar e Penny 08:00–20:00 · Oratorio 15:00–19:00</span></div>
           <SlotPicker shifts={shifts} onChange={setShifts} slots={slots}/>
-          <p className="selection-info" aria-live="polite">{shifts.length?`${shifts.length} ${shifts.length===1?"ora selezionata":"ore selezionate"}`:"Scegli almeno un turno"}<span>Non puoi scegliere la stessa ora in due supermercati.</span></p>
+          <p className="selection-info" aria-live="polite">{shifts.length?`${shifts.length} ${shifts.length===1?"ora selezionata":"ore selezionate"}`:"Scegli almeno un turno"}<span>Non puoi scegliere la stessa ora in due sedi.</span></p>
           {error&&<><p className="error" role="alert">{error}</p><button className="back" onClick={loadSlots}>Aggiorna disponibilità</button></>}
           <div className="actions"><button className="back" onClick={()=>go("details")}><ArrowLeft size={16}/> Indietro</button><button className="primary" disabled={!shifts.length||!slots.length} onClick={()=>go("review")}>Rivedi l’iscrizione <ArrowRight size={17}/></button></div>
         </>}

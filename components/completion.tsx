@@ -9,12 +9,13 @@ export function MinorInstructions(){return <div className="instructions">
   <a className="outline-button" href="/documenti/autorizzazione-minori-2026.pdf" download><Download size={16}/> Scarica il modulo PDF</a>
 </div>;}
 export function AdultGuide({shifts=[]}:{shifts?:Shift[]}) {
-  const selectedStores=Array.from(new Set(shifts.map(s=>s.store)));
+  const selectedStores=Array.from(new Set(shifts.filter(s=>s.store!=="oratorio").map(s=>s.store)));
+  const hasOratorio=shifts.some(s=>s.store==="oratorio");
   const steps=[
     {title:"Accedi e inserisci i dati personali",text:<>Apri il portale del Banco Alimentare e segui la richiesta di accesso con codice temporaneo. Compila i dati personali e tutti i campi contrassegnati da asterisco.</>,images:["dati-personali.png"]},
     {title:"Scegli “Me stesso” e “Punto vendita”",text:<>Nel passaggio “Tipologia volontario”, scegli <strong>Me stesso</strong> e poi <strong>Punto vendita</strong>.</>,images:["1.png"]},
     {title:"Indica se hai bisogno di essere contattato",text:<>Se non sei il capo équipe scegli <strong>No</strong> alla prima domanda. Se hai già concordato qui turni e punto vendita, scegli <strong>No</strong> alla necessità di contatto; se ti servono accordi o chiarimenti scegli <strong>Sì</strong>.</>,images:["2.png"]},
-    {title:"Seleziona il supermercato e gli orari",text:<>Scegli <strong>Piemonte → AT → Asti</strong>, quindi il supermercato: <strong>DESPAR – Corso Alba 68, Asti</strong> oppure <strong>PENNY – Corso Venezia, Asti</strong>. Riporta la disponibilità concordata. {selectedStores.length>1&&<>Se hai scelto turni in entrambi i supermercati, sul portale selezionane uno solo. </>}{selectedStores.length>0&&<>Qui hai scelto: {selectedStores.map(s=>stores[s].name+" · "+stores[s].address).join("; ")}.</>}</>,images:["3a.png","3b.png"]},
+    {title:"Seleziona il supermercato e gli orari",text:<>Scegli <strong>Piemonte → AT → Asti</strong>, quindi il supermercato: <strong>DESPAR – Corso Alba 68, Asti</strong> oppure <strong>PENNY – Corso Venezia, Asti</strong>. Riporta la disponibilità concordata. {hasOratorio&&<>I turni in Oratorio restano indicati nell’iscrizione interna. </>}{selectedStores.length>1&&<>Se hai scelto turni in entrambi i supermercati, sul portale selezionane uno solo. </>}{selectedStores.length>0&&<>Qui hai scelto: {selectedStores.map(s=>stores[s].name+" · "+stores[s].address).join("; ")}.</>}</>,images:["3a.png","3b.png"]},
     {title:"Leggi l’informativa ed esprimi le tue scelte",text:<>Leggi l’informativa e completa tutte le sezioni del consenso. Per newsletter, fotografie e video scegli liberamente se prestare o meno il consenso: le selezioni mostrate negli screenshot sono soltanto un esempio.</>,images:["4.png"]},
     {title:"Controlla il riepilogo e premi “Invia”",text:<>Verifica dati, punto vendita e orari, poi premi <strong>INVIA</strong>. Secondo il vademecum riceverai anche un riepilogo via email. Il salvataggio su questo sito completa solo l’iscrizione interna.</>,images:["5.png"]},
   ];

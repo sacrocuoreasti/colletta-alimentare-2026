@@ -313,3 +313,32 @@ th,td { padding: 14px 12px; border-bottom: 1px solid var(--line); vertical-align
   .admin-tabs { gap: 20px; }
   .admin-tabs button { font-size: 12px; }
 }
+
+/* Selezione turni nella stessa griglia della copertura admin */
+.selection-grid { margin-top: 16px; }
+.selection-table th:first-child { width: 24%; }
+.selection-table th,.selection-table td { padding: 0; }
+.selection-table thead th { padding: 12px 5px; font-size: 12px; }
+.selection-table tbody th { padding: 8px 4px; font-size: 11px; }
+.selection-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; width: 100%; min-height: 66px; padding: 9px 4px; border: 0; background: #fff; color: var(--ink); }
+.selection-cell strong { font-family: "Poppins",sans-serif; font-size: 16px; font-weight: 600; line-height: 1.3; }
+.selection-cell > span { display: flex; justify-content: center; align-items: center; gap: 3px; font-size: 9px; line-height: 1.3; }
+.selection-cell.empty { background: var(--orange); }
+.selection-cell.full { background: var(--green); color: #fff; }
+.selection-cell.overlap { background: #eee; color: #7f8479; }
+.selection-cell.selected { background: #edf5e5; box-shadow: inset 0 0 0 2px var(--green); color: var(--green); }
+.selection-cell:hover:not(:disabled) { box-shadow: inset 0 0 0 2px var(--green); }
+.selection-cell:focus-visible { outline-offset: -4px; position: relative; z-index: 1; }
+.unavailable-cell { background: #f2f3f0; color: #a4a99b; text-align: center; }
+.selection-key { display: flex; flex-wrap: wrap; gap: 12px; font-size: 9px; color: var(--muted); margin: 15px 0; }
+.selection-key > span { display: flex; align-items: center; gap: 5px; }
+@media(max-width:700px) {
+  .selection-table th:first-child { width: 26%; }
+  .selection-table thead th { font-size: 10px; padding: 11px 3px; }
+  .selection-table thead small { font-size: 8px; }
+  .selection-table tbody th { font-size: 9px; padding: 7px 2px; }
+  .selection-cell { min-height: 64px; }
+  .selection-cell strong { font-size: 14px; }
+  .selection-cell > span { font-size: 8px; }
+  .selection-key { gap: 10px; font-size: 8px; }
+}

@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { createHash, randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 import type { z } from "zod";
-import { registrationSchema, stores, type Shift } from "../lib/registration";
+import { registrationSchema, stores, storeIds, type Shift } from "../lib/registration";
 
 export type Registration = z.infer<typeof registrationSchema>;
 type Row = { id: string; first_name: string; last_name: string; phone: string; email: string|null; shifts: string; is_minor: number; access_code: string|null; file_key: string|null; file_name: string|null; file_type: string|null; files_json: string|null; uploaded_at: string|null; created_at: string };
@@ -46,8 +46,8 @@ function booked(store:string,hour:number,except="") {
 }
 export function listSlots():Slot[] {
   const db=getDatabase();
-  return Object.keys(stores).flatMap(store=>Array.from({length:12},(_,i)=>{
-    const hour=i+8; const limit=db.prepare("SELECT capacity FROM slot_limits WHERE store=? AND hour=?").get(store,hour) as {capacity:number|null}|undefined;
+  return storeIds.flatMap(store=>stores[store].hours.map(hour=>{
+    const limit=db.prepare("SELECT capacity FROM slot_limits WHERE store=? AND hour=?").get(store,hour) as {capacity:number|null}|undefined;
     return {store:store as Shift["store"],hour,capacity:limit?.capacity??null,booked:booked(store,hour)};
   }));
 }

@@ -69,7 +69,7 @@ Il pannello consente di:
 - Modificare contatti, maggiore/minore età e fasce, senza sovrapposizioni.
 - Recuperare il codice personale dei minori e scaricare i loro PDF o entrambe le foto per la verifica.
 - Eliminare un’iscrizione con conferma, liberando i posti e rimuovendo l’eventuale PDF e le sessioni collegate.
-- Impostare le capienze per i 24 turni. Campo vuoto: nessun limite; 0: turno chiuso. Non si può scendere sotto gli iscritti già presenti. Il salvataggio delle capienze è atomico.
+- Impostare le capienze per i 28 turni. Campo vuoto: nessun limite; 0: turno chiuso. Non si può scendere sotto gli iscritti già presenti. Il salvataggio delle capienze è atomico.
 
 I posti residui sono visibili nel modulo e aggiornati ogni 15 secondi. Le disponibilità sono ricontrollate nella transazione di salvataggio per impedire sovraprenotazioni. Le sessioni durano 8 ore e sono gestite con cookie HttpOnly; dopo 10 codici errati dalla stessa origine di rete l’accesso viene temporaneamente sospeso per 15 minuti. I codici dei minori eliminati non vengono riassegnati.
 
@@ -94,3 +94,9 @@ Il test crea e rimuove dati fittizi e verifica accessi, capienze concorrenti, va
 La prima schermata del pannello admin mostra una tabella con i supermercati sulle colonne e gli orari sulle righe. Ogni cella indica iscritti/posti massimi: verde se pieno, arancione se non ci sono iscritti, bianco negli altri casi. Il simbolo ∞ indica capienza senza limite; i turni chiusi mostrano 0/0 e la dicitura “Chiuso”. I dati si aggiornano ogni 15 secondi senza sovrascrivere le capienze in modifica.
 
 Dopo l’accesso il minore vede il saluto “Ciao [nome]!”. Per caricare l’autorizzazione sceglie “Un PDF” oppure “Due foto”, con un campo separato per ciascuna pagina. Il nuovo caricamento sostituisce l’intero invio precedente; i PDF già presenti restano disponibili.
+
+## Sedi e selezione turni
+
+Despar (Corso Alba) e Penny (Corso Venezia) hanno turni dalle 08 alle 20. Oratorio ha esclusivamente le fasce 15–16, 16–17, 17–18 e 18–19, per un totale di 28 fasce. Gli orari ammessi sono definiti nel catalogo condiviso `lib/registration.ts` e verificati anche sul server, per iscrizioni e modifiche delle capienze.
+
+La selezione usa una tabella con orari sulle righe e sedi sulle colonne, come la copertura admin. Si clicca una cella per selezionare o rimuovere il turno. Le celle mostrano iscritti/posti massimi, disponibilità e selezione; gli orari non previsti sono disattivati. Sono impedite sovrapposizioni anche fra supermercati e Oratorio.

@@ -5,7 +5,7 @@ export function CoverageTable({slots}:{slots:SlotAvailability[]}){
     <div className="table-scroll"><table className="coverage-table"><thead><tr><th scope="col">Orario</th>{(Object.keys(stores) as Shift["store"][]).map(store=><th key={store} scope="col">{stores[store].name}<small>{stores[store].address}</small></th>)}</tr></thead><tbody>
       {Array.from({length:12},(_,i)=>i+8).map(hour=><tr key={hour}><th scope="row">{timeLabel(hour)}–{timeLabel(hour+1)}</th>{(Object.keys(stores) as Shift["store"][]).map(store=>{
         const slot=slots.find(s=>s.store===store&&s.hour===hour);
-        if(!slot)return <td key={store}>—</td>;
+        if(!slot)return <td key={store} className="unavailable-cell" aria-label={`${stores[store].name}, fascia non prevista`}>—</td>;
         const full=slot.capacity!==null&&slot.capacity>0&&slot.booked>=slot.capacity;
         const state=slot.booked===0?"empty":full?"full":"partial";
         const description=slot.capacity===0?"Turno chiuso":slot.booked===0?"Nessun iscritto":full?"Turno pieno":"Turno parzialmente coperto";
