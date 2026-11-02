@@ -1,44 +1,72 @@
 "use client";
-import { useRef, useState } from "react";
-import { ArrowRight, ArrowLeft, Check, ShoppingBasket, Heart, Clock3, MapPin, LockKeyhole, CheckCircle2, Plus, X } from "lucide-react";
-import { registrationSchema, stores, timeLabel, type Shift } from "../lib/registration";
+import { useCallback,useEffect,useRef,useState } from "react";
+import { ArrowRight,ArrowLeft,Check,Clock3,LockKeyhole,Plus,X } from "lucide-react";
+import { registrationSchema,stores,timeLabel,type Shift,type SlotAvailability } from "../lib/registration";
+import { SiteHeader,SiteFooter } from "../components/site-header";
+import { SlotPicker } from "../components/slot-picker";
+import { Completion } from "../components/completion";
 export default function Home() {
-  const [stage,setStage] = useState<"details"|"shifts"|"review"|"done">("details");
-  const [person,setPerson] = useState({firstName:"",lastName:"",phone:"",email:""});
-  const [shifts,setShifts] = useState<Shift[]>([]);
-  const [error,setError] = useState(""); const [busy,setBusy] = useState(false);
-  const id = useRef(""); const heading = useRef<HTMLHeadingElement>(null);
-  function go(next: typeof stage) { setError("");setStage(next); setTimeout(()=>heading.current?.focus(),0); }
-  function toggle(store: Shift["store"],hour:number) { setError("");setShifts(prev => prev.some(s=>s.store===store && s.hour===hour) ? prev.filter(s=>!(s.store===store && s.hour===hour)) : [...prev,{store,hour}].sort((a,b)=>a.hour-b.hour)); }
-  async function save() {
-    if(busy)return; if(!id.current)id.current=crypto.randomUUID();
+  const [stage,setStage]=useState<"details"|"shifts"|"review"|"done">("details");
+  const [person,setPerson]=useState({firstName:"",lastName:"",phone:"",email:"",isMinor:null as boolean|null});
+  const [shifts,setShifts]=useState<Shift[]>([]);
+  const [slots,setSlots]=useState<SlotAvailability[]>([]);
+  const [error,setError]=useState("");const [busy,setBusy]=useState(false);const [minorCode,setMinorCode]=useState("");
+  const id=useRef("");const heading=useRef<HTMLHeadingElement>(null);
+  const loadSlots=useCallback(async()=>{
+    try{const response=await fetch("/api/slots",{cache:"no-store"});if(!response.ok)throw new Error();const body=await response.json();setSlots(body.slots);}
+    catch{setError("Non è stato possibile aggiornare i posti disponibili. Riprova tra poco.");}
+  },[]);
+  useEffect(()=>{loadSlots();const timer=setInterval(loadSlots,15000);window.addEventListener("focus",loadSlots);return()=>{clearInterval(timer);window.removeEventListener("focus",loadSlots);};},[loadSlots]);
+  function go(next:typeof stage){setError("");setStage(next);setTimeout(()=>heading.current?.focus(),0);}
+  async function save(){
+    if(busy)return;if(!id.current)id.current=crypto.randomUUID();
     const result=registrationSchema.safeParse({...person,id:id.current,shifts});
     if(!result.success){setError(result.error.issues[0].message);return;}
     setBusy(true);setError("");
-    try {const response=await fetch("/api/iscrizioni",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(result.data)});const body=await response.json() as {error?:string;id?:string};if(!response.ok)throw new Error(body.error || "Invio non riuscito. Riprova.");go("done");}
-    catch(e){setError(e instanceof Error ? e.message : "Connessione non disponibile. Riprova.");} finally{setBusy(false);}
+    try{
+      const response=await fetch("/api/iscrizioni",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(result.data)});
+      const body=await response.json();if(!response.ok)throw new Error(body.error||"Invio non riuscito. Riprova.");
+      setMinorCode(body.minorCode||"");go("done");
+    }catch(e){setError(e instanceof Error?e.message:"Connessione non disponibile. Riprova.");loadSlots();}finally{setBusy(false);}
   }
-  function newRegistration(){setPerson({firstName:"",lastName:"",phone:"",email:""});setShifts([]);id.current="";go("details");}
-  return <div className="site">
-    <header className="header"><a className="brand" href="/" aria-label="Colletta Alimentare, pagina iniziale"><span className="brand-icon"><ShoppingBasket size={23}/></span><span>Colletta Alimentare<span className="brand-sub">INSIEME, PER CHI HA BISOGNO</span></span></a><span className="edition">EDIZIONE <b>2026</b></span></header>
-    <main className="layout">
-      <aside className="intro"><div className="eyebrow"><span/> ISCRIZIONI VOLONTARI 2026</div><h1>Il tuo tempo.<br/>Un aiuto <em>concreto.</em></h1><p className="intro-text">Basta un’ora per fare la differenza.<br/>Unisciti a noi per la Colletta Alimentare.</p>
-        <div className="illustration" aria-hidden="true"><svg viewBox="0 0 400 245" fill="none"><ellipse cx="202" cy="213" rx="132" ry="10" fill="#e5ddce"/><circle cx="200" cy="121" r="98" fill="#eee6d6"/><path d="M128 130l-14-58c-4-17 15-23 22-7l25 61" fill="#e4ab63" stroke="#563e30" strokeWidth="2.5"/><path d="M127 91l13-5m-9 22l15-5" stroke="#956a3d" strokeWidth="2.5"/><path d="M244 113c-4-25 4-38 14-45 7 16 6 28-3 43m-3 1c10-26 24-31 39-29-2 20-16 28-36 31" fill="#80956b" stroke="#526648" strokeWidth="2.5"/><path d="M244 114l18 6-10 42-25-8z" fill="#eda95d" stroke="#694d34" strokeWidth="2.5"/><rect x="171" y="79" width="43" height="67" rx="7" transform="rotate(-8 171 79)" fill="#faf5e9" stroke="#645342" strokeWidth="2.5"/><path d="M176 80l6-13 23-3 9 10" fill="#c5d2bb" stroke="#645342" strokeWidth="2.5"/><path d="M181 102l28-4m-26 13l18-3" stroke="#a3ad96" strokeWidth="3"/><path d="M109 124h181l-20 82H131z" fill="#c95836" stroke="#713f2d" strokeWidth="3" strokeLinejoin="round"/><rect x="102" y="120" width="195" height="14" rx="6" fill="#e67d51" stroke="#713f2d" strokeWidth="3"/><path d="M154 120l36-58c5-8 15-8 20 0l36 58" stroke="#713f2d" strokeWidth="8" strokeLinecap="round"/><path d="M155 120l36-58c4-6 12-6 16 0l37 58" stroke="#e0a071" strokeWidth="4" strokeLinecap="round"/><path d="M149 149l7 38m25-38l3 38m30-38l-3 38m32-38l-7 38" stroke="#f1aa82" strokeWidth="6" strokeLinecap="round"/><path d="M309 57c-10-12-26 0-15 12l15 14 15-14c11-12-5-24-15-12z" fill="#c95836"/><path d="M81 106v12m-6-6h12m222 59v12m-6-6h12" stroke="#ae9272" strokeWidth="2" strokeLinecap="round"/></svg><span className="illustration-note">Piccoli gesti, una grande comunità.</span></div>
-        <div className="facts"><div><Clock3 size={18}/><span>Turni da un’ora</span></div><div><MapPin size={18}/><span>2 supermercati</span></div><div><Heart size={18}/><span>Un obiettivo comune</span></div></div>
-      </aside>
-      <section className="form-area" aria-label="Iscrizione interna"><nav className="steps" aria-label="Passaggi dell’iscrizione"><div className="step active"><span>{stage==="done"?<Check size={15}/>:"1"}</span><div>Iscrizione interna<small>I tuoi dati e la tua disponibilità</small></div></div><div className="step-line"/><div className="step future"><span>2</span><div>Completa l’iscrizione<small>Le indicazioni arriveranno qui</small></div></div></nav>
-        <div className="form-card">
-          <div className="card-top"><span className="small-label">{stage==="done"?"GRAZIE DI ESSERCI": "LA TUA PARTECIPAZIONE"}</span><span className="small-pill">{stage==="details"?"1. Dati personali":stage==="shifts"?"2. Disponibilità":stage==="review"?"3. Riepilogo":"Iscrizione salvata"}</span></div>
-          <h2 ref={heading} tabIndex={-1}>{stage==="details"?"Cominciamo da te.":stage==="shifts"?"Dove ci dai una mano?":stage==="review"?"Tutto pronto?":<>Ci sei anche tu, {person.firstName}!</>}</h2>
-          <p className="card-description">{stage==="details"?"Lasciaci i tuoi contatti, poi scegli dove e quando partecipare.":stage==="shifts"?"Scegli una o più ore, anche in supermercati diversi.":stage==="review"?"Controlla i tuoi dati e le fasce orarie prima di confermare.":"La tua iscrizione interna è stata registrata. Ecco la tua disponibilità."}</p>
-          {stage==="details" && <form onSubmit={e=>{e.preventDefault();const parsed=registrationSchema.safeParse({...person,id:"00000000-0000-4000-8000-000000000000",shifts:[{store:"despar",hour:8}]});if(!parsed.success){setError(parsed.error.issues[0].message);return;}go("shifts");}}>
-            <div className="fields"><label>Nome <span>*</span><input autoComplete="given-name" name="firstName" required maxLength={80} placeholder="Il tuo nome" value={person.firstName} onChange={e=>setPerson({...person,firstName:e.target.value})}/></label><label>Cognome <span>*</span><input autoComplete="family-name" name="lastName" required maxLength={80} placeholder="Il tuo cognome" value={person.lastName} onChange={e=>setPerson({...person,lastName:e.target.value})}/></label><label className="full">Numero di telefono <span>*</span><input autoComplete="tel" name="phone" type="tel" required maxLength={25} placeholder="Es. 333 123 4567" value={person.phone} onChange={e=>setPerson({...person,phone:e.target.value})}/><small>Per contattarti in caso di aggiornamenti sui turni.</small></label><label className="full">Email <span className="optional">Facoltativa</span><input autoComplete="email" name="email" type="email" maxLength={254} placeholder="La tua email" value={person.email} onChange={e=>setPerson({...person,email:e.target.value})}/></label></div>
-            <p className="required-note">* Campi obbligatori</p>{error && <p className="error" role="alert">{error}</p>}<button className="primary" type="submit">Scegli i tuoi turni <ArrowRight size={18}/></button><p className="privacy"><LockKeyhole size={13}/> I contatti servono a organizzare la tua partecipazione.</p>
-          </form>}
-          {stage==="shifts" && <><div className="slot-help"><Clock3 size={16}/><span>Dalle 08:00 alle 20:00 · Ogni fascia dura un’ora</span></div><div className="stores">{(Object.keys(stores) as Shift["store"][]).map(store=><fieldset key={store} className="store"><legend><span className={`store-dot ${store}`}/>{stores[store].name}<span className="store-address">{stores[store].address}</span></legend><div className="slots">{Array.from({length:12},(_,i)=>i+8).map(hour=>{const selected=shifts.some(s=>s.store===store&&s.hour===hour);const blocked=shifts.some(s=>s.store!==store&&s.hour===hour);return <button type="button" className={`slot ${selected?"selected":""}`} key={hour} disabled={blocked} aria-pressed={selected} aria-label={`${stores[store].name}, ${timeLabel(hour)}–${timeLabel(hour+1)}${blocked?", già selezionato nell’altro supermercato":""}`} title={blocked?"Questa ora è già selezionata nell’altro supermercato":undefined} onClick={()=>toggle(store,hour)}><span>{timeLabel(hour)}–{timeLabel(hour+1)}</span>{selected?<Check size={13}/>:<Plus size={13}/>}</button>})}</div></fieldset>)}</div><p className="selection-info" aria-live="polite">{shifts.length ? `${shifts.length} ${shifts.length===1?"ora selezionata":"ore selezionate"}`:"Nessuna fascia selezionata"}<span>Le ore scelte in un supermercato si bloccano nell’altro.</span></p>{error&&<p className="error" role="alert">{error}</p>}<div className="actions"><button className="back" onClick={()=>go("details")}><ArrowLeft size={16}/> Indietro</button><button className="primary" disabled={!shifts.length} onClick={()=>go("review")}>Rivedi l’iscrizione <ArrowRight size={17}/></button></div></>}
-          {(stage==="review"||stage==="done") && <>{stage==="done"&&<div className="success-banner"><CheckCircle2 size={21}/><span>Iscrizione interna confermata</span></div>}<div className="summary-person"><strong>{person.firstName} {person.lastName}</strong><span>{person.phone}</span>{person.email&&<span>{person.email}</span>}</div><div className="summary-label">LA TUA DISPONIBILITÀ <b>{shifts.length} {shifts.length===1?"ora":"ore"}</b></div><ul className="summary-shifts">{shifts.map(s=><li key={`${s.store}-${s.hour}`}><span><strong>{stores[s.store].name}</strong><small>{stores[s.store].address}</small></span><span>{timeLabel(s.hour)}–{timeLabel(s.hour+1)}</span>{stage==="review"&&<button aria-label={`Rimuovi ${stores[s.store].name} ${timeLabel(s.hour)}`} onClick={()=>setShifts(shifts.filter(x=>x!==s))}><X size={15}/></button>}</li>)}</ul>{error&&<p className="error" role="alert">{error}</p>}{stage==="review"?<><div className="actions"><button className="back" disabled={busy} onClick={()=>go("shifts")}><ArrowLeft size={16}/> Modifica</button><button className="primary" disabled={busy||!shifts.length} onClick={save}>{busy?"Salvataggio…":"Conferma iscrizione"}{!busy&&<Check size={17}/>}</button></div><p className="privacy"><LockKeyhole size={13}/> I contatti servono a organizzare la tua partecipazione.</p></>:<><div className="next-note"><span className="small-label">IL PROSSIMO PASSAGGIO</span><p>Le indicazioni per l’iscrizione sul portale o per il modulo dei minorenni saranno disponibili qui in seguito.</p></div><p className="reference">Riferimento: {id.current}</p><button className="back" onClick={newRegistration}><Plus size={16}/> Iscrivi un’altra persona</button></>}</>}
-        </div><div className="under-card"><Heart size={15}/><span>Ogni ora donata conta. Grazie per la tua disponibilità.</span></div>
-      </section>
-    </main><footer><span>Colletta Alimentare 2026</span><span>Organizzazione interna dei volontari</span></footer>
-  </div>;
+  function newRegistration(){setPerson({firstName:"",lastName:"",phone:"",email:"",isMinor:null});setShifts([]);setMinorCode("");id.current="";go("details");loadSlots();}
+  return <div className="site"><SiteHeader/><main className="layout">
+    <div className="intro"><p className="eyebrow">VOLONTARI · 14 NOVEMBRE 2026</p><h1>Colletta Alimentare <span>2026</span></h1><p className="intro-text">Lascia i tuoi contatti e scegli quando dare una mano.</p></div>
+    <section className="form-area" aria-label="Iscrizione volontari">
+      <nav className="steps" aria-label="Passaggi dell’iscrizione">
+        <div className="step active"><span>{stage==="done"?<Check size={15}/>:"1"}</span><div>Iscrizione interna</div></div><div className="step-line"/>
+        <div className={`step ${stage==="done"?"active":"future"}`}><span>2</span><div>{person.isMinor===true?"Autorizzazione":person.isMinor===false?"Portale Banco Alimentare":"Portale o modulo"}</div></div>
+      </nav>
+      <div className="form-card">
+        <div className="card-top"><span className="small-pill">{stage==="details"?"1. Dati personali":stage==="shifts"?"2. Disponibilità":stage==="review"?"3. Riepilogo":"Iscrizione interna salvata"}</span></div>
+        <h2 ref={heading} tabIndex={-1}>{stage==="details"?"I tuoi dati":stage==="shifts"?"Scegli i turni":stage==="review"?"Riepilogo":"Completa la partecipazione"}</h2>
+        <p className="card-description">{stage==="details"?"Nome, cognome e telefono sono obbligatori. L’email è facoltativa.":stage==="shifts"?"Scegli una o più ore, anche in supermercati diversi.":stage==="review"?"Controlla i dati e i turni prima di confermare.":"La disponibilità è registrata. Ti resta questo ultimo passaggio."}</p>
+        {stage==="details"&&<form onSubmit={e=>{e.preventDefault();if(person.isMinor===null){setError("Indica se sei maggiorenne o minorenne.");return;}const parsed=registrationSchema.safeParse({...person,id:"00000000-0000-4000-8000-000000000000",shifts:[{store:"despar",hour:8}]});if(!parsed.success){setError(parsed.error.issues[0].message);return;}loadSlots();go("shifts");}}>
+          <div className="fields">
+            <label>Nome *<input name="firstName" autoComplete="given-name" required maxLength={80} placeholder="Il tuo nome" value={person.firstName} onChange={e=>setPerson({...person,firstName:e.target.value})}/></label>
+            <label>Cognome *<input name="lastName" autoComplete="family-name" required maxLength={80} placeholder="Il tuo cognome" value={person.lastName} onChange={e=>setPerson({...person,lastName:e.target.value})}/></label>
+            <label className="full">Numero di telefono *<input name="phone" autoComplete="tel" type="tel" required maxLength={25} placeholder="Es. 333 123 4567" value={person.phone} onChange={e=>setPerson({...person,phone:e.target.value})}/><small>Per gli aggiornamenti sui turni.</small></label>
+            <label className="full">Email <span className="optional">Facoltativa</span><input name="email" autoComplete="email" type="email" maxLength={254} placeholder="La tua email" value={person.email} onChange={e=>setPerson({...person,email:e.target.value})}/></label>
+          </div>
+          <fieldset className="age-choice"><legend>Il giorno della Colletta avrai già 18 anni? *</legend><label><input type="radio" name="age" required checked={person.isMinor===false} onChange={()=>setPerson({...person,isMinor:false})}/> Sì, sarò maggiorenne</label><label><input type="radio" name="age" checked={person.isMinor===true} onChange={()=>setPerson({...person,isMinor:true})}/> No, sarò minorenne</label></fieldset>
+          <p className="required-note">* Campi obbligatori</p>{error&&<p className="error" role="alert">{error}</p>}
+          <button className="primary" type="submit">Scegli i tuoi turni <ArrowRight size={18}/></button><p className="privacy"><LockKeyhole size={13}/> I contatti servono a organizzare la tua partecipazione.</p>
+        </form>}
+        {stage==="shifts"&&<>
+          <div className="slot-help"><Clock3 size={16}/><span>08:00–20:00 · Turni da un’ora · Posti aggiornati automaticamente</span></div>
+          <SlotPicker shifts={shifts} onChange={setShifts} slots={slots}/>
+          <p className="selection-info" aria-live="polite">{shifts.length?`${shifts.length} ${shifts.length===1?"ora selezionata":"ore selezionate"}`:"Scegli almeno un turno"}<span>Non puoi scegliere la stessa ora in due supermercati.</span></p>
+          {error&&<><p className="error" role="alert">{error}</p><button className="back" onClick={loadSlots}>Aggiorna disponibilità</button></>}
+          <div className="actions"><button className="back" onClick={()=>go("details")}><ArrowLeft size={16}/> Indietro</button><button className="primary" disabled={!shifts.length||!slots.length} onClick={()=>go("review")}>Rivedi l’iscrizione <ArrowRight size={17}/></button></div>
+        </>}
+        {stage==="review"&&<>
+          <div className="summary-person"><strong>{person.firstName} {person.lastName}</strong><span>{person.phone}</span>{person.email&&<span>{person.email}</span>}<span>{person.isMinor?"Minorenne":"Maggiorenne"}</span></div>
+          <div className="summary-label">LA TUA DISPONIBILITÀ <b>{shifts.length} {shifts.length===1?"ora":"ore"}</b></div>
+          <ul className="summary-shifts">{shifts.map(s=><li key={`${s.store}-${s.hour}`}><span><strong>{stores[s.store].name}</strong><small>{stores[s.store].address}</small></span><span>{timeLabel(s.hour)}–{timeLabel(s.hour+1)}</span><button disabled={busy} aria-label={`Rimuovi ${stores[s.store].name} ${timeLabel(s.hour)}`} onClick={()=>setShifts(shifts.filter(x=>x!==s))}><X size={15}/></button></li>)}</ul>
+          {error&&<p className="error" role="alert">{error}</p>}<div className="actions"><button className="back" disabled={busy} onClick={()=>go("shifts")}><ArrowLeft size={16}/> Modifica</button><button className="primary" disabled={busy||!shifts.length} onClick={save}>{busy?"Salvataggio…":"Conferma iscrizione"}{!busy&&<Check size={17}/>}</button></div>
+        </>}
+        {stage==="done"&&<><Completion isMinor={!!person.isMinor} code={minorCode} shifts={shifts}/><button className="back another-registration" onClick={newRegistration}><Plus size={16}/> Iscrivi un’altra persona</button></>}
+      </div>
+    </section>
+  </main><SiteFooter/></div>;
 }
