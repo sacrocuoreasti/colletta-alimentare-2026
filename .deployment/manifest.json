@@ -1,10 +1,10 @@
 {
   "format": 1,
   "bootstrap": true,
-  "releaseId": "7e214022-78b7-48b2-ba5c-6ad6fa70f0b7",
+  "releaseId": "199a7e03-af20-4df3-b207-efbaa6d9e890",
   "targetVersion": "0.1.1",
   "sourceVersion": "legacy",
-  "preparedAt": "2026-11-10T18:58:37.450Z",
-  "archiveSha256": "1398604323e3a62216251247620f893de3310188e7c1c56673abe68f85d9128a",
-  "encryptedSha256": "80e82a21bbadc91fe9fba08ece32e7c189fc277dd7b12d2564a47ff5f2d5a9f0"
+  "preparedAt": "2026-11-10T19:04:13.589Z",
+  "archiveSha256": "d6c7f4a336c3e21a7afe028b464fc4e2631c2e9336431934ad9422713d949247",
+  "encryptedSha256": "a6b0d0502e37487dde21fdbabe1d11e5c807128638520e2244bb16f14c61cc03"
 }
