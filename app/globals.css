@@ -302,6 +302,15 @@ th,td { padding: 14px 12px; border-bottom: 1px solid var(--line); vertical-align
 .coverage-cell.full,.coverage-swatch.full { background: var(--green); color: #fff; }
 .coverage-cell.empty,.coverage-swatch.empty { background: var(--orange); color: #222; }
 .coverage-cell.partial,.coverage-swatch.partial { background: #fff; color: var(--ink); }
+.admin-heading-actions { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.admin-tabs { overflow-x: auto; }
+.admin-tabs button { flex-shrink: 0; }
+.roster-section { max-width: 1050px; }
+.roster-section .coverage-table th:first-child { width: 20%; }
+.roster-section .coverage-table { min-width: 580px; }
+.roster-names { list-style: none; padding: 0; margin: 0; text-align: left; }
+.roster-names li { padding: 4px 0; overflow-wrap: anywhere; line-height: 1.5; }
+.roster-empty { font-size: 11px; }
 @media(max-width:700px) {
   .coverage-table th,.coverage-table td { padding: 10px 5px; }
   .coverage-table th:first-child { width: 30%; }

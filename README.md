@@ -26,6 +26,30 @@ npm start
 
 ## Render, quando richiesto
 
+### Rilasci controllati su Render Free
+
+Il progetto include ora un protocollo di rilascio analogo a SITO SC3. Non richiede un plugin Render né un disco a pagamento per trasferire il backup durante un aggiornamento controllato. Richiede una chiave privata `BACKUP_ENCRYPTION_KEY` di almeno 32 caratteri casuali, configurata sul servizio e conservata fuori da Git. Nell’interfaccia Render usare **Save only** per salvarla senza avviare deploy o riavvii.
+
+**Il protocollo non è ancora installato sulla versione pubblica precedente.** `scripts/release.mjs` riconosce questo caso e rifiuta di pubblicare. Il primo avvio richiede una procedura separata che protegga anche le scritture sul vecchio server: non basta ripristinare un backup mentre nuove iscrizioni o documenti possono ancora arrivare. L’eccezione di bootstrap usata da altri progetti non si applica automaticamente a questo sito. Non fare push o chiamare il deploy hook per aggirare il controllo.
+
+Per la prima installazione 0.1.1, l’utente ha confermato una finestra in cui nessuno iscrive, modifica o carica e ha autorizzato a procedere. `scripts/prepare-bootstrap.mjs` prepara uno snapshot cifrato soltanto da un backup verificato e con conferma esplicita della finestra senza attività; non pubblica da solo. Prima del push devono essere configurata la chiave sul servizio, verificato il ripristino e ricontrollato il backup se c’è stata attesa. Il primo bootstrap logico conserva tutte le iscrizioni, i codici attivi e i documenti esposti dalle API legacy; lo storico dei codici di iscrizioni eliminate non è esportato dalla versione legacy. I rilasci successivi usano il backup SQLite completo del nuovo protocollo.
+
+Dopo l’installazione iniziale protetta, da `main` con le modifiche al codice già committate:
+
+```sh
+node scripts/release.mjs
+```
+
+Il comando controlla il protocollo online, sospende iscrizioni, modifiche e caricamenti, attende le richieste già ammesse, scarica e verifica database e tutti i file. Conserva il backup privato nella cartella `BACKUP` esterna al repository, pubblica solo lo snapshot cifrato AES-256-GCM e il manifest tecnico, incrementa la versione e avvia il deploy tramite push. L’avvio ripristina i dati prima di accettare richieste; il confronto di tutti i campi delle iscrizioni, codici emessi, capienze e hash dei documenti deve riuscire prima di riaprire le scritture. Un database o documento esistente diverso non viene sovrascritto. Build Render senza snapshot della versione corretta vengono rifiutate.
+
+Per annullare una preparazione prima del push: `node scripts/release.mjs --cancel`. Dopo il ripristino, la manutenzione può terminare solo con il confronto positivo. La chiave non si deve cambiare senza ricifrare lo snapshot.
+
+Questo conserva lo stato durante i rilasci controllati. Il filesystem di Render Free resta effimero: un riavvio imprevisto può ripristinare l’ultimo snapshot di rilascio, perdendo modifiche successive a quello snapshot. La conservazione continua richiede uno storage persistente. Nessuna infrastruttura a pagamento viene attivata da questi script.
+
+Il ripristino automatico si attiva esclusivamente su Render: il database di sviluppo locale rimane separato e non viene sostituito dallo snapshot di produzione.
+
+`node scripts/test-release.mjs` verifica blocco delle scritture, cifratura, ripristino, documenti mancanti o alterati, confronto e protezione di database già esistenti con dati fittizi. Per includere le prove API di manutenzione, avvia il server isolato con una `BACKUP_ENCRYPTION_KEY` di prova e avvia `scripts/test-integration.mjs` con `TEST_RELEASE_ENABLED=1`.
+
 Nessuna pubblicazione automatica viene eseguita da questo progetto. `render.yaml` è una configurazione per un futuro Web Service Node; usa questa cartella come radice del repository. Se il repository contiene invece la cartella `colletta-2026`, imposta `Root Directory` su `colletta-2026` nel servizio e il percorso Blueprint su `colletta-2026/render.yaml`.
 
 - Build: `npm ci && npm run build`
@@ -89,7 +113,15 @@ TEST_BASE_URL=http://127.0.0.1:3001 node scripts/test-integration.mjs
 
 Il test crea e rimuove dati fittizi e verifica accessi, capienze concorrenti, validazione, upload, modifica, eliminazione e limite tentativi. Usa una nuova cartella temporanea per ogni esecuzione.
 
+`node scripts/test-roster.mjs` controlla la tabella nominativa e il contenuto del file Excel con dati fittizi, inclusi omonimi, accenti, colori e sedi con orari diversi. Il test di integrazione controlla anche che l’Excel sia accessibile soltanto all’admin e che il download lasci invariati iscrizioni e documenti.
+
+Per verificare un backup logico senza toccare gli originali, avvia un server locale su una **copia separata** del database e della cartella `autorizzazioni/`. Esegui `scripts/verify-restored-backup.mjs` con `TEST_BASE_URL` rivolto a quel server e `BACKUP_PATH` rivolto alla cartella originale contenente `registrations.json`, `slots.json` e `documents-manifest.json`. Il controllo confronta tutti i campi, i documenti tramite SHA-256 e ogni assegnazione esportata. I backup con dati personali vanno conservati fuori dal repository.
+
 ## Copertura turni
+
+La scheda **Turni nominativi** mostra nome e cognome degli iscritti in ogni cella, mantenendo gli stessi colori della copertura. I nomi sono ordinati per cognome; volontari omonimi restano distinti. Nomi e disponibilità si aggiornano insieme ogni 15 secondi, senza sovrascrivere le capienze in modifica.
+
+**Scarica Excel** esporta un file `.xlsx`, riservato agli amministratori, con un foglio per sede (Despar Corso Alba, Penny Corso Venezia, Oratorio). La prima colonna contiene gli orari; le successive contengono una persona per cella. Ogni foglio include solo gli orari previsti per quella sede e conserva i colori della copertura. L’esportazione legge i dati senza modificare iscrizioni o documenti.
 
 La prima schermata del pannello admin mostra una tabella con i supermercati sulle colonne e gli orari sulle righe. Ogni cella indica iscritti/posti massimi: verde se pieno, arancione se non ci sono iscritti, bianco negli altri casi. Il simbolo ∞ indica capienza senza limite; i turni chiusi mostrano 0/0 e la dicitura “Chiuso”. I dati si aggiornano ogni 15 secondi senza sovrascrivere le capienze in modifica.
 

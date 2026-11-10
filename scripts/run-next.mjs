@@ -1,6 +1,8 @@
 import { spawn } from 'node:child_process';
+import { restoreRelease } from '../lib/release-runtime.mjs';
 const mode = process.argv[2];
 if (!['dev', 'start'].includes(mode)) throw new Error('Modalità non valida');
+if (mode === 'start') restoreRelease();
 const args = ['node_modules/next/dist/bin/next', mode];
 if (mode === 'dev') args.push('--webpack');
 args.push('--hostname', process.env.HOST || (mode === 'dev' ? '127.0.0.1' : '0.0.0.0'), '--port', process.env.PORT || '3000', ...process.argv.slice(3));

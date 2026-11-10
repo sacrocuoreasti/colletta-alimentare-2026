@@ -49,3 +49,10 @@ yarn-error.log*
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+
+# Release: only encrypted payload and technical manifest may be versioned.
+/.deployment/*
+!/.deployment/restore.enc
+!/.deployment/manifest.json
+/backups/
+*.backup.gz

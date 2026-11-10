@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { readFile,readdir } from 'node:fs/promises';
 import { DatabaseSync } from 'node:sqlite';
 import { dirname,join } from 'node:path';
+import ExcelJS from 'exceljs';
 const base=process.env.TEST_BASE_URL;
 if(!base || new URL(base).hostname!=='127.0.0.1')throw new Error('Set TEST_BASE_URL to an isolated server on 127.0.0.1.');
 const adminCode=process.env.TEST_ADMIN_CODE||'ColSC26';
@@ -16,6 +17,10 @@ async function request(path,{method='GET',body,cookie,expected=200,origin,raw}={
 }
 function person(isMinor=false,shifts=[{store:'despar',hour:8}]){return {id:randomUUID(),firstName:'Prova',lastName:'Integrazione',phone:'3331234567',email:'',isMinor,shifts};}
 await request('/api/admin/iscrizioni',{expected:401});
+await request('/api/admin/turni/excel',{expected:401});
+await request('/api/admin/release/prepare',{method:'POST',body:{targetVersion:'99.0.0'},expected:401});
+await request('/api/admin/release/complete',{method:'POST',body:{},expected:401});
+await request('/api/admin/release/cancel',{method:'POST',body:{},expected:401});
 await request('/api/admin/slots',{method:'PATCH',body:{slots:[]},expected:401});
 await request('/api/autorizzazione',{expected:401});
 await request('/api/autorizzazione/file',{expected:401});
@@ -55,6 +60,8 @@ const minor=person(true,[{store:'penny',hour:9}]);
 const registration=await request('/api/iscrizioni',{method:'POST',body:minor,expected:201});const code=registration.data.minorCode;assert.match(code,/^[A-Z0-9]{3}$/);
 const logged=await request('/api/accesso',{method:'POST',body:{code:code.toLowerCase()}});const minorCookie=logged.cookie;assert.equal(logged.data.role,'minor');
 await request('/api/admin/iscrizioni',{cookie:minorCookie,expected:401});
+await request('/api/admin/turni/excel',{cookie:minorCookie,expected:401});
+await request('/api/admin/release/prepare',{method:'POST',body:{targetVersion:'99.0.0'},cookie:minorCookie,expected:401});
 const pdf=await readFile('public/documenti/autorizzazione-minori-2026.pdf');
 const form=()=>{const data=new FormData();data.set('file',new Blob([pdf],{type:'application/pdf'}),'modulo-test.pdf');data.set('confirmed','true');return data;};
 await request('/api/autorizzazione',{method:'POST',raw:form(),expected:401});
@@ -90,6 +97,36 @@ await request('/api/autorizzazione/file',{cookie:minorCookie});
 await request(`/api/admin/iscrizioni/${minor.id}/autorizzazione`,{cookie:admin});
 await request(`/api/admin/iscrizioni/${minor.id}/autorizzazione`,{expected:401});
 let records=(await request('/api/admin/iscrizioni',{cookie:admin})).data.registrations;assert(records.find(r=>r.id===minor.id).hasAuthorization);
+if(process.env.TEST_RELEASE_ENABLED==='1'){
+  const beforeRelease=(await request('/api/admin/iscrizioni',{cookie:admin})).data;
+  const health=(await request('/api/health')).data;assert.equal(health.releaseProtocol,1);assert.equal(health.backupReady,true);
+  await request('/api/admin/release/prepare',{method:'POST',body:{targetVersion:'invalid'},cookie:admin,expected:400});
+  const release=(await request('/api/admin/release/prepare',{method:'POST',body:{targetVersion:'99.0.0'},cookie:admin})).data;assert(release.manifest.encryptedSha256);assert(release.backup);assert(release.encrypted);
+  await request('/api/iscrizioni',{method:'POST',body:person(),expected:503});
+  await request('/api/autorizzazione',{method:'POST',raw:form(),cookie:minorCookie,expected:503});
+  await request('/api/admin/slots',{method:'PATCH',cookie:admin,body:{slots:[{store:'penny',hour:9,capacity:5}]},expected:503});
+  await request(`/api/admin/iscrizioni/${minor.id}`,{method:'PATCH',cookie:admin,body:minor,expected:503});
+  await request(`/api/admin/iscrizioni/${minor.id}`,{method:'DELETE',cookie:admin,expected:503});
+  assert.deepEqual((await request('/api/admin/iscrizioni',{cookie:admin})).data,beforeRelease);
+  await request('/api/admin/release/cancel',{method:'POST',body:{},cookie:admin});
+  assert.equal((await request('/api/health')).data.maintenance,false);
+}
+const beforeExport=await request('/api/admin/iscrizioni',{cookie:admin});
+const documentBefore=await fetch(base+`/api/admin/iscrizioni/${minor.id}/autorizzazione`,{headers:{Cookie:admin}}).then(r=>r.arrayBuffer());
+const excelResponse=await fetch(base+'/api/admin/turni/excel',{headers:{Cookie:admin}});
+assert.equal(excelResponse.status,200);assert.equal(excelResponse.headers.get('content-type'),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');assert.match(excelResponse.headers.get('cache-control'),/no-store/);assert.match(excelResponse.headers.get('content-disposition'),/\.xlsx/);checks++;
+const workbook=new ExcelJS.Workbook();await workbook.xlsx.load(Buffer.from(await excelResponse.arrayBuffer()));
+assert.deepEqual(workbook.worksheets.map(s=>s.name),['Despar Corso Alba','Penny Corso Venezia','Oratorio']);
+for(const [index,store] of ['despar','penny','oratorio'].entries()){
+  const sheet=workbook.worksheets[index];const hours=store==='oratorio'?[15,16,17,18]:Array.from({length:12},(_,i)=>i+8);
+  assert.equal(sheet.rowCount,hours.length+1);
+  for(const [offset,hour] of hours.entries()){
+    const expected=records.filter(r=>r.shifts.some(s=>s.store===store&&s.hour===hour)).map(r=>`${r.firstName} ${r.lastName}`).sort();
+    assert.deepEqual(sheet.getRow(offset+2).values.slice(2).filter(Boolean).sort(),expected);
+  }
+}checks++;
+assert.deepEqual((await request('/api/admin/iscrizioni',{cookie:admin})).data,beforeExport.data);
+const documentAfter=await fetch(base+`/api/admin/iscrizioni/${minor.id}/autorizzazione`,{headers:{Cookie:admin}}).then(r=>r.arrayBuffer());assert.deepEqual(documentAfter,documentBefore);checks++;
 await request(`/api/admin/iscrizioni/${adult.id}`,{method:'PATCH',cookie:admin,body:{...adult,shifts:[{store:'penny',hour:11}],firstName:'Modificato'}});
 slots=(await request('/api/slots')).data.slots;assert.equal(slots.find(s=>s.store==='despar'&&s.hour===8).booked,0);
 await request(`/api/admin/iscrizioni/${minor.id}`,{method:'DELETE',cookie:admin});

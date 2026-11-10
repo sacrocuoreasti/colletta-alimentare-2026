@@ -1,4 +1,5 @@
 import { AppError, sessionFromToken } from "../db";
+import { ReleaseError } from "./release-runtime.mjs";
 export function tokenFromRequest(request:Request) { return request.headers.get("cookie")?.split(";").map(x=>x.trim()).find(x=>x.startsWith("colletta_session="))?.slice("colletta_session=".length)||""; }
 export function requireSession(request:Request,role?:"admin"|"minor") {
   const session=sessionFromToken(tokenFromRequest(request));
@@ -26,7 +27,7 @@ export async function readJson(request:Request) {
 }
 export function json(data:unknown,status=200) { return Response.json(data,{status,headers:{"Cache-Control":"no-store"}}); }
 export function apiError(error:unknown) {
-  if(error instanceof AppError)return json({error:error.message},error.status);
+  if(error instanceof AppError||error instanceof ReleaseError)return json({error:error.message},error.status);
   console.error("Errore del server",error instanceof Error?error.message:"errore sconosciuto");
   return json({error:"Operazione non riuscita. Riprova tra poco."},503);
 }
